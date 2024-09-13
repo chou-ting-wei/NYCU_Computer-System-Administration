@@ -34,17 +34,17 @@ sudo systemctl enable ssh
 
 sudo mkdir -p /home/judge/.ssh
 sudo wget -O /home/judge/.ssh/authorized_keys https://nasa.cs.nycu.edu.tw/sa/2024/nasakey.pub
-ssh-keygen -l -f /home/judge/.ssh/authorized_keys
+sudo ssh-keygen -l -f /home/judge/.ssh/authorized_keys
 
 # Motd
 sudo nano /etc/update-motd.d/99-motd
 
 # ---------- #
 #!/bin/sh
-echo "NYCU-SA-2024-112550013"
+echo "NYCU-SA-2024-88"
 # ---------- #
 
-sudo chmod +x /etc/update-motd.d/50-motd
+sudo chmod +x /etc/update-motd.d/99-motd
 run-parts --lsbsysinit /etc/update-motd.d
 
 # Package Repository Mirror
