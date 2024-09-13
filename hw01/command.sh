@@ -48,6 +48,7 @@ run-parts --lsbsysinit /etc/update-motd.d
 # Package Repository Mirror
 sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.backup
 sudo vi /etc/apt/sources.list.d/ubuntu.sources
+
 # ---------- #
 Types: deb
 URIs: http://ubuntu.cs.nycu.edu.tw/ubuntu/
@@ -61,6 +62,7 @@ Suites: noble-security
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 # ---------- #
+
 sudo apt update
 
 # sudo vi /etc/apt/sources.list
