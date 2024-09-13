@@ -1,5 +1,3 @@
-ssh -p 2020 twchou@140.113.121.154
-
 # Your machine should boot using UEFI
 ls /sys/firmware/efi
 
@@ -37,7 +35,7 @@ sudo wget -O /home/judge/.ssh/authorized_keys https://nasa.cs.nycu.edu.tw/sa/202
 sudo ssh-keygen -l -f /home/judge/.ssh/authorized_keys
 
 # Motd
-sudo nano /etc/update-motd.d/99-motd
+sudo vi /etc/update-motd.d/99-motd
 
 # ---------- #
 #!/bin/sh
@@ -48,19 +46,33 @@ sudo chmod +x /etc/update-motd.d/99-motd
 run-parts --lsbsysinit /etc/update-motd.d
 
 # Package Repository Mirror
-# sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.backup
-# sudo nano /etc/apt/sources.list.d/ubuntu.sources
-
-sudo nano /etc/apt/sources.list
+sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.backup
+sudo vi /etc/apt/sources.list.d/ubuntu.sources
 # ---------- #
-deb http://ubuntu.cs.nycu.edu.tw/ubuntu/ noble main 
-deb-src http://ubuntu.cs.nycu.edu.tw/ubuntu/ noble main 
+Types: deb
+URIs: http://ubuntu.cs.nycu.edu.tw/ubuntu/
+Suites: noble noble-updates noble-backports
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: noble-security
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 # ---------- #
 sudo apt update
 
+# sudo vi /etc/apt/sources.list
+# # ---------- #
+# deb http://ubuntu.cs.nycu.edu.tw/ubuntu/ noble main 
+# deb-src http://ubuntu.cs.nycu.edu.tw/ubuntu/ noble main 
+# # ---------- #
+# sudo apt update
+
 # Setup WireGuard
 sudo apt install wireguard
-sudo nano /etc/wireguard/wg0.conf
+sudo vi /etc/wireguard/wg0.conf
 
 sudo wg-quick up wg0
 ping -c 3 10.113.88.254 # ping -c 3 10.113.${ID}.254
