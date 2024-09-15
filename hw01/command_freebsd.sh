@@ -20,6 +20,7 @@ groups judge
 sudo tzsetup Asia/Taipei
 
 # Secure Shell
+sudo mkdir -p /home/judge/.ssh
 wget https://nasa.cs.nycu.edu.tw/sa/2024/nasakey.pub
 ssh-copy-id -i nasakey.pub judge@127.0.0.1
 
