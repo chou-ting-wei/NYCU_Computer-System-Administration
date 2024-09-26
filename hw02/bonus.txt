@@ -1,0 +1,10 @@
+{"id":"39bd2f9c-e34b-406c-ae55-b39e58ffbda8","type":"JOIN_NYCU_CSIT","problem":"https://i.imgur.com/wP3ST2x.jpeg","status":"PENDING"}
+{"id":"d9653cfd-040e-48f8-bbe3-03a17f87451d","type":"JOIN_NYCU_CSIT","problem":"https://www.youtube.com/watch?v=oXZcuHIR5ko","status":"PENDING"}
+{"id":"1fb1023c-4e53-428a-9e6b-8270b8a3a4e8","type":"JOIN_NYCU_CSIT","problem":"https://youtu.be/deIVzmx8wQ4?si=3QSrbHEKfOXgvUC5","status":"PENDING"}
+{"id":"8948b6c8-1cdb-41a8-a9cc-2d346d97dc9f","type":"JOIN_NYCU_CSIT","problem":"https://youtu.be/dQw4w9WgXcQ?si=Z7-pzS91BBTDg1nk","status":"PENDING"}
+{"id":"aa55dc7c-d4a2-4fbf-861c-4edf3cbc6aa8","type":"JOIN_NYCU_CSIT","problem":"https://ani.gamer.com.tw/animeVideo.php?sn=38846","status":"PENDING"}
+{"id":"3dd77420-1de0-48f0-b617-2dedc98853fd","type":"JOIN_NYCU_CSIT","problem":"https://cop.nycu.edu.tw/upload/menu06_doc/20171127151159K18m.pdf","status":"PENDING"}
+{"id":"9c0aff7c-b4c7-4d1f-8e9d-b1396dfdbfca","type":"JOIN_NYCU_CSIT","problem":"https://aa.nycu.edu.tw/userfiles/aach/files/20231011094355237.pdf","status":"PENDING"}
+{"id":"b7c6eec1-68f6-4608-a013-40cb8f4ed2ab","type":"JOIN_NYCU_CSIT","problem":"https://raw.githubusercontent.com/mkrl/misbrands/c4cc3f127473870371db8cc7efa3fa2c48a0ca6d/ubuntu.svg","status":"PENDING"}
+{"id":"336baa6c-49bb-471e-add1-faf9bd50898f","type":"JOIN_NYCU_CSIT","problem":"https://raw.githubusercontent.com/mkrl/misbrands/c4cc3f127473870371db8cc7efa3fa2c48a0ca6d/vscode.svg","status":"PENDING"}
+{"id":"d78ca3c6-15d6-40b9-97ca-bf03d418c472","type":"JOIN_NYCU_CSIT","problem":"https://raw.githubusercontent.com/cat-milk/Anime-Girls-Holding-Programming-Books/master/Shell/Akko_Kagari_Classic_Shell_Scripting.jpg","status":"PENDING"}
