@@ -1,0 +1,69 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          sftp_watchd
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: SFTP Watch Daemon
+# Description:       Monitors SFTP uploads and handles violations
+### END INIT INFO
+
+DAEMON="/usr/local/bin/sftp_watchd"
+DAEMON_NAME="sftp_watchd"
+PID_FILE="/var/run/sftp_watchd.pid"
+
+. /lib/lsb/init-functions
+
+start() {
+    echo "Starting $DAEMON_NAME."
+    nohup "$DAEMON" >/dev/null 2>&1 &
+}
+
+stop() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        echo "Kill: $PID"
+        kill "$PID"
+        echo "Service stop."
+        rm -f "$PID_FILE"
+    else
+        echo "$DAEMON_NAME is not running."
+    fi
+}
+
+status() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "$DAEMON_NAME is running as pid $PID."
+        else
+            echo "$DAEMON_NAME is not running, but pid file exists."
+        fi
+    else
+        echo "$DAEMON_NAME is not running."
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        sleep 1
+        start
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: service $DAEMON_NAME {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0

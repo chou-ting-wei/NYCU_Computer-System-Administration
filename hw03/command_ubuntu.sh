@@ -47,7 +47,7 @@ done
 
 # Configure SSH Key Authentication
 JUDGE_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII+i+HeIdzPSCHcZfGPAieFc5HsdLUCz7ebYDwv/lpMZ judge@sa-2024"
-USER_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGYHIVa6+a/PT6tTlN+S5dvSiqj9am5NitZ05yTzMNIp chou.ting.wei@twchous-MacBook-Pro"
+USER_PUB_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCeQidmU94kze7JsoUQ0hcXyQmGEQNoaCrmdVSK4rboGFO1y+4MPiFP4aYaPy3Y7SxwYzQciqFNDCqXUFmxaTbA2uqNhmJ0pJMTB3SW5uzhcvhNmQUk8IPq1STgA1kbOWc9+CMQebwWPMMD7Pn+3OuRKKU0VlN53w68GvIVya2HfeBa53AQaLeScw2DHVQpJbojOpW1LaOYACXRQRrffKyYEkMjnAJctGK54DWHhMdLHIkhd2+A0jXqUKeNf7a91Su9MgQ2QtkpGAdlUgFXo0MBt2u13E5XaGDUAB9XL4nTVQ8cKbB+tHqzjQ87ICvl3oD9x2EhMhKy7m117ugN2nSL4hk/P8NpMrphH1yIlfSDSOeWkqzu0hrSuF87H3aEFEVs8SCo3Ik3X3epZ4Sr/mpGRTIVuECGshwG+hPd0z3+h0OoM94907BbQQKNV+an/hB3QGHpvp7O08nwdcsLOwuuC1cJPUOfarliAvSeRRrB4DphoRziIEMj9UThlD8UzA5YC8GJXMe2ke+UkPP2Z0lKsZobLYZKHcp2OuSVG8gxh6KLmxR/H++UDXinBqgyyxM5PniO+Mk2/26xBT7RFo8GcyS0O1Zw4Tb8M9l28ltHEQMRspir+bCn7gsbAnq8oEp+LlsjFKKEjHe4Cq8/TogZ30YD2ShphXoP+kA9+QJvYw== twchou@twchous-MacBook-Air.local"
 # For sysadm
 sudo mkdir -p /home/sysadm/.ssh
 sudo chmod 700 /home/sysadm/.ssh
@@ -82,25 +82,17 @@ Match User sftp-u1,sftp-u2,anonymous
     AllowTcpForwarding no
     X11Forwarding no
 # ----------
-
 sudo systemctl restart sshd
-
-# Set Permissions for Directories
-# Set permissions for public directory
-# sudo chmod -R o-w /home/sftp/public
-# Set permissions for hidden directory
-# sudo chmod -R o-w /home/sftp/hidden
-
 
 # HW 3-2: SFTP auditing with RC (22%)
 # Configure SSHD to Log SFTP Actions
 sudo vim /etc/ssh/sshd_config
 # ----------
-Subsystem sftp internal-sftp -l VERBOSE
+Subsystem sftp internal-sftp -l VERBOSE -f LOCAL7
 
 Match User sftp-u1,sftp-u2,anonymous
     ChrootDirectory /home/sftp
-    ForceCommand internal-sftp -u 027
+    ForceCommand internal-sftp -u 027 -l VERBOSE -f LOCAL7
     PermitTTY no
     AllowTcpForwarding no
     X11Forwarding no
@@ -109,234 +101,50 @@ sudo systemctl restart sshd
 
 sudo mkdir /home/sftp/dev
 sudo chown root:root /home/sftp/dev
-sudo chmod 777 /home/sftp/dev
+sudo chmod 755 /home/sftp/dev
 sudo touch /home/sftp/dev/log
 sudo mount --bind /run/systemd/journal/dev-log /home/sftp/dev/log
+ls -l /home/sftp/dev/log
 
-mount | grep /home/sftp/dev/log
-
-
-# sudo vim /etc/fstab
-# # ----------
-# /run/systemd/journal/dev-log /home/sftp/dev/log none bind,nofail,x-systemd.requires=sshd.service
-# # ----------
-
-# sudo vim /etc/rsyslog.d/40-sftp.conf
-# # ----------
-# # SFTP log source
-# $ModLoad imuxsock  # For Unix sockets like /dev/log
-# $ModLoad imfile    # For reading file sources
-
-# # Input source for the custom SFTP log
-# input(type="imuxsock" Socket="/home/sftp/dev/log")
-
-# # SFTP-specific filter and logging
-# if $programname == 'internal-sftp' then /var/log/sftp.log
-# & stop
-# # ----------
-# sudo systemctl restart rsyslog
-
-sudo apt update
-sudo apt install syslog-ng
-
-sudo vim /etc/syslog-ng/syslog-ng.conf
+sudo vim /etc/rsyslog.d/40-sftp.conf
 # ----------
-source s_src {
-  internal();
-  file("/proc/kmsg");
-  unix-dgram("/dev/log");
-  unix-dgram("/home/sftp/dev/log");
-};
+$AddUnixListenSocket /home/sftp/dev/log
 
-#sftp configuration
-destination d_sftp { file("/var/log/sftp.log"); };
-filter f_sftp { program("internal-sftp"); };
-log { source(src); filter(f_sftp); destination(d_sftp); };
+LOCAL7.* /var/log/sftp.log
 # ----------
-sudo systemctl restart syslog-ng
-
+sudo systemctl restart rsyslog
 
 sudo touch /var/log/sftp.log
 sudo chown root:adm /var/log/sftp.log
-sudo chmod 740 /var/log/sftp.log
+sudo chmod 666 /var/log/sftp.log
 
 sudo tail -f /var/log/sftp.log
-# sudo tail -f /var/log/auth.log
-
 
 
 sudo vim /usr/local/bin/sftp_watchd
-# ----------
-#!/usr/bin/env python3
-
-import time
-import os
-import re
-import shutil
-import logging
-import pwd
-import sys
-
-# Configure logging
-logging.basicConfig(
-    filename='/var/log/sftp_watchd.log',
-    level=logging.INFO,
-    format='%(asctime)s %(hostname)s sftp_watchd[%(process)d]: %(message)s',
-    datefmt='%b %d %H:%M:%S'
-)
-# Add hostname to logging
-logging.Formatter.converter = time.gmtime
-logging.Formatter.default_msec_format = '%s.%03d'
-
-# Get the hostname
-hostname = os.uname()[1]
-
-# Path to monitor
-sftp_log = '/var/log/sftp.log'
-
-# Directory to move violated files
-violated_dir = '/home/sftp/hidden/.violated/'
-
-# Ensure the violated directory exists
-if not os.path.exists(violated_dir):
-    os.makedirs(violated_dir)
-
-# Function to check if a file is executable
-def is_executable(file_path):
-    try:
-        # Use the 'file' command to check the file type
-        import subprocess
-        result = subprocess.run(['file', '--mime-type', '-b', file_path], stdout=subprocess.PIPE)
-        mime_type = result.stdout.decode().strip()
-        return 'application/x-executable' in mime_type or 'application/x-dosexec' in mime_type
-    except Exception as e:
-        return False
-
-# Function to get the username from UID
-def get_username(uid):
-    try:
-        return pwd.getpwuid(uid).pw_name
-    except KeyError:
-        return str(uid)
-
-# Monitor the sftp.log file
-def monitor_log():
-    with open(sftp_log, 'r') as f:
-        # Move to the end of the file
-        f.seek(0, os.SEEK_END)
-        while True:
-            line = f.readline()
-            if not line:
-                time.sleep(0.1)
-                continue
-            # Check for 'open' operation indicating file upload
-            match = re.search(r'open "(.*?)" flags WRITE,CREATE', line)
-            if match:
-                file_path = match.group(1)
-                # Since the paths are relative to the chroot, adjust the path
-                full_path = os.path.join('/home/sftp', file_path.lstrip('/'))
-                if os.path.exists(full_path):
-                    if is_executable(full_path):
-                        uploader_match = re.search(r'for local user ([\w-]+)', line)
-                        if uploader_match:
-                            uploader = uploader_match.group(1)
-                        else:
-                            uploader = 'unknown'
-                        # Move the file to the violated directory
-                        dest_path = os.path.join(violated_dir, os.path.basename(full_path))
-                        shutil.move(full_path, dest_path)
-                        # Log the violation
-                        log_message = f"{full_path} violate file detected. Uploaded by {uploader}."
-                        logging.info(log_message, extra={'hostname': hostname})
-if __name__ == '__main__':
-    monitor_log()
-# ----------
 
 sudo chmod +x /usr/local/bin/sftp_watchd
-
-sudo chown root:adm /var/log/sftp.log
-sudo chmod 640 /var/log/sftp.log
-
 sudo touch /var/log/sftp_watchd.log
 sudo chown root:adm /var/log/sftp_watchd.log
-sudo chmod 640 /var/log/sftp_watchd.log
+sudo chmod 666 /var/log/sftp_watchd.log
+sudo mkdir -p /home/sftp/hidden/.violated/
+sudo chown root:sftp-users /home/sftp/hidden/.violated/
+sudo chmod 775 /home/sftp/hidden/.violated/
+
+sudo tail -f /var/log/sftp_watchd.log
 
 # Create the RC Script for sftp_watchd Service
 sudo vim /etc/init.d/sftp_watchd
-# ----------
-#!/bin/sh
-### BEGIN INIT INFO
-# Provides:          sftp_watchd
-# Required-Start:    $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: SFTP Watch Daemon
-# Description:       Monitors SFTP uploads and handles violations
-### END INIT INFO
-
-DAEMON=/usr/local/bin/sftp_watchd
-DAEMON_NAME=sftp_watchd
-PIDFILE=/var/run/$DAEMON_NAME.pid
-LOGFILE=/var/log/$DAEMON_NAME.log
-
-. /lib/lsb/init-functions
-
-start_daemon() {
-    log_daemon_msg "Starting $DAEMON_NAME"
-    start-stop-daemon --start --background --make-pidfile --pidfile $PIDFILE --exec $DAEMON
-    log_end_msg $?
-}
-
-stop_daemon() {
-    if [ -f $PIDFILE ]; then
-        PID=$(cat $PIDFILE)
-        log_daemon_msg "Stopping $DAEMON_NAME"
-        start-stop-daemon --stop --pidfile $PIDFILE --retry 10
-        rm -f $PIDFILE
-        log_end_msg $?
-    else
-        log_daemon_msg "$DAEMON_NAME is not running"
-        log_end_msg 1
-    fi
-}
-
-case "$1" in
-    start)
-        start_daemon
-        ;;
-    stop)
-        stop_daemon
-        ;;
-    restart)
-        stop_daemon
-        sleep 1
-        start_daemon
-        ;;
-    status)
-        if [ -f $PIDFILE ]; then
-            PID=$(cat $PIDFILE)
-            if [ -e /proc/$PID -a /proc/$PID/exe ]; then
-                echo "$DAEMON_NAME is running as pid $PID."
-            else
-                echo "$DAEMON_NAME is not running, but pid file exists."
-            fi
-        else
-            echo "$DAEMON_NAME is not running."
-        fi
-        ;;
-    *)
-        echo "Usage: service $DAEMON_NAME {start|stop|restart|status}"
-        exit 1
-        ;;
-esac
-
-exit 0
-# ----------
 
 sudo chmod +x /etc/init.d/sftp_watchd
 sudo update-rc.d sftp_watchd defaults
+
+sudo vim /etc/systemd/system/sftp_watchd.service
+sudo systemctl daemon-reload
+
 sudo service sftp_watchd start
+sudo service sftp_watchd stop
+sudo service sftp_watchd restart
 sudo service sftp_watchd status
 
 # HW 3-3: ZFS & Backup (54%)

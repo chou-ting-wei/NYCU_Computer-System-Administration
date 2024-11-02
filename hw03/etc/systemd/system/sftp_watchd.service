@@ -1,0 +1,13 @@
+[Unit]
+Description=SFTP Watch Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/sftp_watchd
+Restart=on-failure
+RestartSec=5
+PIDFile=/var/run/sftp_watchd.pid
+
+[Install]
+WantedBy=multi-user.target

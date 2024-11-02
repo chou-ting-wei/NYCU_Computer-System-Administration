@@ -1,0 +1,60 @@
+#!/bin/sh
+
+# Configuration
+SFTP_LOG="/var/log/sftp.log"
+VIOLATED_DIR="/home/sftp/hidden/.violated/"
+LOG_FILE="/var/log/sftp_watchd.log"
+PID_FILE="/var/run/sftp_watchd.pid"
+
+mkdir -p "$VIOLATED_DIR"
+touch "$LOG_FILE"
+
+
+echo $$ > "$PID_FILE"
+
+cleanup() {
+    rm -f "$PID_FILE"
+    exit
+}
+
+trap cleanup INT TERM EXIT
+
+is_executable() {
+    mime_type=$(file --mime-type -b "$1")
+    case "$mime_type" in
+        application/x-executable|application/x-sharedlib|application/vnd.microsoft.portable-executable|application/x-dosexec|application/x-object|application/octet-stream|application/x-pie-executable)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+tail -F "$SFTP_LOG" | while read -r line; do
+    if echo "$line" | grep -q 'open "'; then
+        session_id=$(echo "$line" | sed -n 's/.*internal-sftp\[\([0-9]*\)\]: open "\([^"]*\)" flags.*/\1/p')
+        file_path=$(echo "$line" | sed -n 's/.*internal-sftp\[[0-9]*\]: open "\([^"]*\)" flags.*/\1/p')
+
+        if [ -n "$file_path" ]; then
+            full_path="/home/sftp${file_path}"
+
+            sleep 1
+
+            if [ -f "$full_path" ]; then
+                if is_executable "$full_path"; then
+                    uploader=$(grep "session opened for local user" "$SFTP_LOG" | grep "internal-sftp\[$session_id\]" | tail -1 | sed 's/.*session opened for local user \([^ ]*\).*/\1/')
+                    [ -z "$uploader" ] && uploader="unknown"
+
+                    mv "$full_path" "$VIOLATED_DIR"
+                    timestamp=$(date '+%b %d %H:%M:%S')
+                    hostname=$(hostname)
+                    program_name="sftp_watchd"
+                    echo "$timestamp $hostname $program_name: $full_path violate file detected. Uploaded by $uploader." >> "$LOG_FILE"
+                fi
+            fi
+        fi
+    fi
+done
+
+cleanup
