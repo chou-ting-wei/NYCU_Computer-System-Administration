@@ -1,4 +1,6 @@
+# ------------------------------
 # HW 3-1: File server (24%)
+# ------------------------------
 
 # Create Users
 # Create sysadm with SSH access
@@ -84,7 +86,10 @@ Match User sftp-u1,sftp-u2,anonymous
 # ----------
 sudo systemctl restart sshd
 
+# ------------------------------
 # HW 3-2: SFTP auditing with RC (22%)
+# ------------------------------
+
 # Configure SSHD to Log SFTP Actions
 sudo vim /etc/ssh/sshd_config
 # ----------
@@ -120,6 +125,8 @@ sudo chmod 666 /var/log/sftp.log
 
 sudo tail -f /var/log/sftp.log
 
+sudo vim /etc/systemd/system/bind-log.service
+sudo systemctl enable bind-log.service
 
 sudo vim /usr/local/bin/sftp_watchd
 
@@ -131,8 +138,6 @@ sudo mkdir -p /home/sftp/hidden/.violated/
 sudo chown root:sftp-users /home/sftp/hidden/.violated/
 sudo chmod 775 /home/sftp/hidden/.violated/
 
-sudo tail -f /var/log/sftp_watchd.log
-
 # Create the RC Script for sftp_watchd Service
 sudo vim /etc/init.d/sftp_watchd
 
@@ -140,12 +145,84 @@ sudo chmod +x /etc/init.d/sftp_watchd
 sudo update-rc.d sftp_watchd defaults
 
 sudo vim /etc/systemd/system/sftp_watchd.service
+sudo systemctl enable sftp_watchd.service
 sudo systemctl daemon-reload
 
 sudo service sftp_watchd start
+sudo service sftp_watchd status
 sudo service sftp_watchd stop
 sudo service sftp_watchd restart
-sudo service sftp_watchd status
 
+sudo tail -f /var/log/sftp_watchd.log
+
+# ------------------------------
 # HW 3-3: ZFS & Backup (54%)
+# ------------------------------
 
+sudo apt update
+sudo apt install zfsutils-linux
+sudo apt install gdisk
+
+# Configure the New Disk
+# Choose “VDI (VirtualBox Disk Image)” as the disk type.
+
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,LABEL
+
+# Partitioning with GPT
+sudo gdisk /dev/sdb
+sudo gdisk /dev/sdc
+sudo gdisk /dev/sdd
+sudo gdisk /dev/sde
+
+# Create a New GPT Partition Table:
+# Command: o (creates a new empty GUID partition table)
+# Prompt: Confirm by typing y
+
+# Create a New Partition:
+# Command: n (add a new partition)
+# Partition Number: Press Enter to accept default (1)
+# First Sector: Press Enter to accept default
+# Last Sector: Press Enter to use the entire disk
+# Hex Code or GUID: bf00 (Solaris root)
+
+# Set the Partition Label:
+# Command: c (change the partition's name)
+# Partition Number: 1
+# Name: mypool-1 (for /dev/sdb), mypool-2 (for /dev/sdc),
+#       mypool-3 (for /dev/sdd), mypool-4 (for /dev/sde).
+
+# Write Changes and Exit:
+# Command: w (write table to disk and exit)
+# Prompt: Confirm by typing y
+
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,LABEL
+sudo blkid
+
+sudo zpool create mypool \
+  mirror /dev/disk/by-partlabel/mypool-1 /dev/disk/by-partlabel/mypool-2 \
+  mirror /dev/disk/by-partlabel/mypool-3 /dev/disk/by-partlabel/mypool-4
+sudo zpool status
+
+sudo zfs set mountpoint=/home/sftp mypool
+sudo zfs get mountpoint mypool
+
+sudo systemctl enable zfs-import-cache.service
+sudo systemctl enable zfs-mount.service
+sudo systemctl enable zfs-import.target
+sudo systemctl enable zfs.target
+
+sudo reboot
+df -h | grep sftp
+
+# Create ZFS Datasets
+sudo zfs create mypool/public
+sudo zfs create mypool/hidden
+
+sudo zfs set compression=lz4 mypool
+sudo zfs set atime=off mypool
+sudo zfs get compression,atime mypool
+
+# Automatic Snapshot Script: zfsbak
+sudo vim /usr/local/bin/zfsbak
+
+sudo chmod +x /usr/local/bin/zfsbak

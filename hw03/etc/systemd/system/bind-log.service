@@ -1,0 +1,11 @@
+[Unit]
+Description=Bind mount dev-log to /home/sftp/dev/log
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mount --bind /run/systemd/journal/dev-log /home/sftp/dev/log
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

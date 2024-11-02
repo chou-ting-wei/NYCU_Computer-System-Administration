@@ -1,0 +1,127 @@
+#!/bin/bash
+
+function showHelp(){
+    echo "Usage:"
+    echo "- create: zfsbak DATASET [ROTATION_CNT]"
+    echo "- list: zfsbak -l|--list [DATASET|ID|DATASET ID...]"
+    echo "- delete: zfsbak -d|--delete [DATASET|ID|DATASET ID...]"
+    echo "- export: zfsbak -e|--export DATASET [ID]"
+    echo "- import: zfsbak -i|--import FILENAME DATASET"
+}
+
+function updateDate(){
+    curDate="$(date '+%Y-%m-%d-%H:%M:%S')"
+}
+
+Transform="transform"
+
+function transform(){
+    args=($(echo "${1:-}" | tr ' ' '\n'))
+
+    input=$(cat | grep '@zfsbak_' | sed 's/@zfsbak_/@/g' | sort -t@ -k2,2 -k1,1)
+
+    processed_snapshots=''
+
+    lines=()
+    header="ID\tDATASET\t\tTIME"
+
+    counter=1
+
+    for line in $input; do
+        prefix=${line%/*}      # Extracts the dataset prefix
+        timestamp=${line#*@}   # Extracts the timestamp
+        name=${line%@*}        # Extracts the dataset name
+        if [[ "$processed_snapshots" != *"|$prefix@$timestamp|"* ]]; then
+            lines+=("${counter}\t${name}\t\t${timestamp}")
+            counter=$((counter+1))
+        fi
+        processed_snapshots="$processed_snapshots |$line|"
+    done
+
+    echo -e "$header"
+    if [ -z "$args" ]; then
+        for x in "${lines[@]}"; do
+            echo -e "$x"
+        done
+    else
+        for x in "${args[@]}"; do
+            echo -e "${lines[$((x-1))]}"
+        done
+    fi
+}
+
+function createSnapshot(){
+    local dataset=$1
+    local rotation_cnt=${2:-12}
+
+    zfs snapshot -r "${dataset}@zfsbak_${curDate}"
+    echo "Snap ${dataset}@zfsbak_${curDate}"
+
+    snapshots=($(zfs list -H -t snapshot -o name -r "${dataset}" | grep "^${dataset}@zfsbak_" | sort -r))
+    for ((i = rotation_cnt; i < ${#snapshots[@]}; i++)); do
+        zfs destroy "${snapshots[i]}"
+        echo "Destroy ${snapshots[i]}"
+    done
+}
+
+function listSnapshot(){
+    number_regex='^[0-9]+$'
+    if  [[ $# -eq 0 ]]; then
+        zfs list -H -o name -t snapshot -r | "$Transform"
+
+    elif [[ $1 =~ $number_regex ]]; then
+        zfs list -H -o name -t snapshot -r | "$Transform" "$*"
+    else
+        dataset=$1
+        shift
+        zfs list -H -o name -t snapshot -r "$dataset" | "$Transform" "$*"
+    fi
+}
+
+function deleteSnapshot(){
+    targets=$(listSnapshot "$@" | sed '1d' | awk 'NF {print $2 "@zfsbak_" $3}' )
+    for snapshot in $targets; do
+        zfs destroy "$snapshot"
+        echo "Destroy $snapshot"
+    done
+}
+
+function exportSnapshot(){
+    dataset=$1
+    snapshot_id=${2:-1}
+    input=$(listSnapshot "$dataset" "$snapshot_id" | sed '1d' | awk 'NF {print $2 "@zfsbak_" $3}')
+    user_home=$(getent passwd | grep "$SUDO_USER" | cut -d: -f6)
+    output="${user_home}/$(echo "$input" | tr '/' '_').zst.aes"
+    zfs send -R "$input" | zstd -qc - | openssl aes-256-cbc -k "$ZFSBAK_PASS" -pbkdf2 -out "$output"
+    echo "Export $input to $output"
+}
+
+function importSnapshot(){
+    file=$1
+    dataset=$2
+    echo "Import $file to $dataset"
+    zstd -qcd "$file" | zfs receive "$dataset"
+}
+
+updateDate
+case "$1" in
+  -l|--list)
+    shift; listSnapshot "$@"
+    ;;
+  -d|--delete)
+    shift; deleteSnapshot "$@"
+    ;;
+  -e|--export)
+    shift; exportSnapshot "$@"
+    ;;
+  -i|--import)
+    shift; importSnapshot "$@"
+    ;;
+  *)
+    if [ $# -ne 0 ]; then
+        createSnapshot "$@"
+    else
+        showHelp
+    fi
+    ;;
+esac
