@@ -1,21 +1,20 @@
-# ------------------------------
+# ----------------------------------------
 # HW 3-1: File server (24%)
-# ------------------------------
+# ----------------------------------------
 
-# Create Users
-# Create sysadm with SSH access
+# --------------------
+# Create users and group
+# --------------------
 sudo adduser sysadm
 sudo adduser sftp-u1 --shell /usr/sbin/nologin
 sudo adduser sftp-u2 --shell /usr/sbin/nologin
 sudo adduser anonymous --shell /usr/sbin/nologin
 
-# Set Up Groups and Add Users
 sudo groupadd sftp-users
 sudo usermod -aG sftp-users sysadm
 sudo usermod -aG sftp-users sftp-u1
 sudo usermod -aG sftp-users sftp-u2
 
-# Create Directories
 sudo mkdir -p /home/sftp/public
 sudo mkdir -p /home/sftp/hidden/treasure
 sudo touch /home/sftp/hidden/treasure/secret
@@ -23,7 +22,9 @@ sudo touch /home/sftp/hidden/treasure/secret
 sudo ln -s /home/sftp/public /home/sysadm/public
 sudo ln -s /home/sftp/hidden /home/sysadm/hidden
 
-# Set Ownership and Permissions
+# --------------------
+# Set ownership and permissions
+# --------------------
 # /home/sftp
 sudo chown root:root /home/sftp
 sudo chmod 755 /home/sftp
@@ -47,17 +48,19 @@ for user in sftp-u1 sftp-u2 anonymous; do
     sudo chmod 700 /home/sftp/home/$user
 done
 
+# --------------------
 # Configure SSH Key Authentication
+# --------------------
 JUDGE_PUB_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII+i+HeIdzPSCHcZfGPAieFc5HsdLUCz7ebYDwv/lpMZ judge@sa-2024"
 USER_PUB_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCeQidmU94kze7JsoUQ0hcXyQmGEQNoaCrmdVSK4rboGFO1y+4MPiFP4aYaPy3Y7SxwYzQciqFNDCqXUFmxaTbA2uqNhmJ0pJMTB3SW5uzhcvhNmQUk8IPq1STgA1kbOWc9+CMQebwWPMMD7Pn+3OuRKKU0VlN53w68GvIVya2HfeBa53AQaLeScw2DHVQpJbojOpW1LaOYACXRQRrffKyYEkMjnAJctGK54DWHhMdLHIkhd2+A0jXqUKeNf7a91Su9MgQ2QtkpGAdlUgFXo0MBt2u13E5XaGDUAB9XL4nTVQ8cKbB+tHqzjQ87ICvl3oD9x2EhMhKy7m117ugN2nSL4hk/P8NpMrphH1yIlfSDSOeWkqzu0hrSuF87H3aEFEVs8SCo3Ik3X3epZ4Sr/mpGRTIVuECGshwG+hPd0z3+h0OoM94907BbQQKNV+an/hB3QGHpvp7O08nwdcsLOwuuC1cJPUOfarliAvSeRRrB4DphoRziIEMj9UThlD8UzA5YC8GJXMe2ke+UkPP2Z0lKsZobLYZKHcp2OuSVG8gxh6KLmxR/H++UDXinBqgyyxM5PniO+Mk2/26xBT7RFo8GcyS0O1Zw4Tb8M9l28ltHEQMRspir+bCn7gsbAnq8oEp+LlsjFKKEjHe4Cq8/TogZ30YD2ShphXoP+kA9+QJvYw== twchou@twchous-MacBook-Air.local"
-# For sysadm
+
 sudo mkdir -p /home/sysadm/.ssh
 sudo chmod 700 /home/sysadm/.ssh
 echo "$JUDGE_PUB_KEY" | sudo tee -a /home/sysadm/.ssh/authorized_keys
 echo "$USER_PUB_KEY" | sudo tee -a /home/sysadm/.ssh/authorized_keys
 sudo chmod 600 /home/sysadm/.ssh/authorized_keys
 sudo chown -R sysadm:sysadm /home/sysadm/.ssh
-# For chrooted users
+
 for user in sftp-u1 sftp-u2 anonymous; do
     sudo mkdir -p /home/sftp/home/$user/.ssh
     sudo chmod 700 /home/sftp/home/$user/.ssh
@@ -67,12 +70,16 @@ for user in sftp-u1 sftp-u2 anonymous; do
     sudo chown -R $user:$user /home/sftp/home/$user/.ssh
 done
 
-# Update Users' Home Directories
+# --------------------
+# Update Users Home Directories
+# --------------------
 sudo usermod -d /home/sftp/home/sftp-u1 sftp-u1
 sudo usermod -d /home/sftp/home/sftp-u2 sftp-u2
 sudo usermod -d /home/sftp/home/anonymous anonymous
 
+# --------------------
 # Configure SSHD for SFTP and Chroot
+# --------------------
 sudo vim /etc/ssh/sshd_config
 # ----------
 Subsystem sftp internal-sftp
@@ -86,11 +93,13 @@ Match User sftp-u1,sftp-u2,anonymous
 # ----------
 sudo systemctl restart sshd
 
-# ------------------------------
+# ----------------------------------------
 # HW 3-2: SFTP auditing with RC (22%)
-# ------------------------------
+# ----------------------------------------
 
-# Configure SSHD to Log SFTP Actions
+# --------------------
+# Log SFTP Actions
+# --------------------
 sudo vim /etc/ssh/sshd_config
 # ----------
 Subsystem sftp internal-sftp -l VERBOSE -f LOCAL7
@@ -128,6 +137,9 @@ sudo tail -f /var/log/sftp.log
 sudo vim /etc/systemd/system/bind-log.service
 sudo systemctl enable bind-log.service
 
+# --------------------
+# sftp_watchd
+# --------------------
 sudo vim /usr/local/bin/sftp_watchd
 
 sudo chmod +x /usr/local/bin/sftp_watchd
@@ -138,7 +150,9 @@ sudo mkdir -p /home/sftp/hidden/.violated/
 sudo chown root:sftp-users /home/sftp/hidden/.violated/
 sudo chmod 775 /home/sftp/hidden/.violated/
 
+# --------------------
 # Create the RC Script for sftp_watchd Service
+# --------------------
 sudo vim /etc/init.d/sftp_watchd
 
 sudo chmod +x /etc/init.d/sftp_watchd
@@ -155,20 +169,23 @@ sudo service sftp_watchd restart
 
 sudo tail -f /var/log/sftp_watchd.log
 
-# ------------------------------
+# ----------------------------------------
 # HW 3-3: ZFS & Backup (54%)
-# ------------------------------
+# ----------------------------------------
 
 sudo apt update
 sudo apt install zfsutils-linux
 sudo apt install gdisk
 
+# --------------------
 # Configure the New Disk
+# --------------------
 # Choose “VDI (VirtualBox Disk Image)” as the disk type.
-
 lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,LABEL
 
+# --------------------
 # Partitioning with GPT
+# --------------------
 sudo gdisk /dev/sdb
 sudo gdisk /dev/sdc
 sudo gdisk /dev/sdd
@@ -214,7 +231,9 @@ sudo systemctl enable zfs.target
 sudo reboot
 df -h | grep sftp
 
+# --------------------
 # Create ZFS Datasets
+# --------------------
 sudo zfs create mypool/public
 sudo zfs create mypool/hidden
 
@@ -222,7 +241,9 @@ sudo zfs set compression=lz4 mypool
 sudo zfs set atime=off mypool
 sudo zfs get compression,atime mypool
 
+# --------------------
 # Automatic Snapshot Script: zfsbak
+# --------------------
 sudo vim /usr/local/bin/zfsbak
 
 sudo chmod +x /usr/local/bin/zfsbak
