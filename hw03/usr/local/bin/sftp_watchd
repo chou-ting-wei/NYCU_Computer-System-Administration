@@ -9,7 +9,6 @@ PID_FILE="/var/run/sftp_watchd.pid"
 mkdir -p "$VIOLATED_DIR"
 touch "$LOG_FILE"
 
-
 echo $$ > "$PID_FILE"
 
 cleanup() {
