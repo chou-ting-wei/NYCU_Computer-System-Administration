@@ -415,7 +415,7 @@ sudo apt-get update
 sudo apt-get install nfs-kernel-server -y
 
 sudo mkdir -p /data
-sudo chown nobody:nogroup /data
+sudo chown 1001:1001 /data
 sudo chmod 755 /data
 
 sudo vim /etc/exports
@@ -442,8 +442,14 @@ sudo apt-get update
 sudo apt-get install nfs-common -y
 
 sudo mkdir -p /net/data
+sudo chown $(whoami):$(whoami) /net/data
 sudo mount -t nfs 192.168.88.2:/data /net/data
 df -h | grep /net/data
+
+sudo vim /etc/fstab
+# ----------
+192.168.88.2:/data  /net/data  nfs  defaults  0  0
+# ----------
 
 # --------------------
 # Synchronizing Files
@@ -466,6 +472,10 @@ sudo mkdir -p /home/twchou/backend/uploads
 sudo mount -t nfs 192.168.88.2:/home/twchou/backend/uploads /home/twchou/backend/uploads
 df -h | grep /home/twchou/backend/uploads
 
+sudo vim /etc/fstab
+# ----------
+192.168.88.2:/home/twchou/backend/uploads  /home/twchou/backend/uploads  nfs  defaults  0  0
+# ----------
 
 ls /home/twchou/backend/uploads
 
