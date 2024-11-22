@@ -1,0 +1,21 @@
+[ req ]
+default_bits        = 2048
+prompt              = no
+default_md          = sha256
+distinguished_name  = dn
+req_extensions      = req_ext
+
+[ dn ]
+C  = TW
+ST = HsinChu
+O  = NYCU
+CN = *.88.cs.nycu
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1   = nasa.88.cs.nycu
+DNS.2   = file.88.cs.nycu
+DNS.3   = adminer.88.cs.nycu
+DNS.4   = *.88.cs.nycu

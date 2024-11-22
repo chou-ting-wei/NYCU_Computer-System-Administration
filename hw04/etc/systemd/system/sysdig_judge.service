@@ -1,0 +1,14 @@
+[Unit]
+Description=Sysdig Monitoring for User judge
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/unbuffer /usr/bin/sysdig -c spy_users user.name=judge
+Restart=on-failure
+RestartSec=5
+User=root
+StandardOutput=append:/var/log/sysdig_judge.log
+StandardError=append:/var/log/sysdig_judge_error.log
+
+[Install]
+WantedBy=multi-user.target

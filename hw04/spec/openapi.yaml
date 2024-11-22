@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: FastAPI
+  version: 0.1.0
+paths:
+  /ip:
+    get:
+      summary: Network Info
+      operationId: network_info_ip_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkInfo'
+  /file/{filename}:
+    get:
+      summary: Read File
+      operationId: read_file_file__filename__get
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Filename
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/octet-stream:
+              schema: {}
+  /upload:
+    post:
+      summary: Upload File
+      operationId: upload_file_upload_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_file_upload_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileStatus'
+  /db/{username}:
+    get:
+      summary: Get User
+      operationId: get_user_db__username__get
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Username
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    Body_upload_file_upload_post:
+      properties:
+        file:
+          type: string
+          format: binary
+          title: File
+      type: object
+      required:
+        - file
+      title: Body_upload_file_upload_post
+    FileStatus:
+      properties:
+        filename:
+          type: string
+          title: Filename
+        success:
+          type: boolean
+          title: Success
+      type: object
+      required:
+        - filename
+        - success
+      title: FileStatus
+    NetworkInfo:
+      properties:
+        ip:
+          type: string
+          title: Ip
+        hostname:
+          type: string
+          title: Hostname
+      type: object
+      required:
+        - ip
+        - hostname
+      title: NetworkInfo
+    User:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        age:
+          type: integer
+          title: Age
+        birthday:
+          type: string
+          title: Birthday
+      type: object
+      required:
+        - id
+        - name
+        - age
+        - birthday
+      title: User
+

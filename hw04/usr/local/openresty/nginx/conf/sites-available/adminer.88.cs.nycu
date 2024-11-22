@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name adminer.88.cs.nycu;
+
+    access_log /home/judge/webserver/log/access.log combined if=$loggable;
+    
+
+    # Redirect HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name adminer.88.cs.nycu;
+
+    access_log /home/judge/webserver/log/access.log combined if=$loggable;
+
+    ssl_certificate /usr/local/openresty/nginx/conf/ssl/88.cs.nycu.crt;
+    ssl_certificate_key /usr/local/openresty/nginx/conf/ssl/88.cs.nycu.key;
+
+    # Enable HSTS
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # Hide Server Information
+    server_tokens off;
+
+    location / {
+        proxy_pass http://localhost:6064;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}

@@ -1,0 +1,167 @@
+server {
+    listen 80;
+    server_name nasa.88.cs.nycu;
+
+    access_log /home/judge/webserver/log/access.log combined if=$loggable;
+
+    access_by_lua_block {
+        ngx.req.read_body()
+        local req_body = ngx.req.get_body_data()
+        if not req_body then
+            local req_body_file = ngx.req.get_body_file()
+            if req_body_file then
+                local file = io.open(req_body_file, "rb")
+                if file then
+                    req_body = file:read("*all")
+                    file:close()
+                end
+            end
+        end
+        ngx.ctx.request_body = req_body or ""
+    }
+
+    body_filter_by_lua_block {
+        local resp_body = ngx.ctx.buffered or ""
+        resp_body = resp_body .. (ngx.arg[1] or "")
+        if ngx.arg[2] then
+            ngx.ctx.response_body = resp_body
+        else
+            ngx.ctx.buffered = resp_body
+        end
+    }
+
+    log_by_lua_block {
+        if ngx.var.loggable == "1" then
+            local cjson = require "cjson.safe"
+            local status = ngx.status
+
+            local req_headers = ngx.req.get_headers()
+            local req_body = ngx.ctx.request_body or ""
+            local resp_headers = ngx.resp.get_headers()
+            local resp_body = ngx.ctx.response_body or ""
+
+            local function format_headers(headers)
+                local formatted = ""
+                for k, v in pairs(headers) do
+                    formatted = formatted .. string.format("%s: %s\n", k, v)
+                end
+                return formatted
+            end
+
+            local log_content = "Request Headers:\n" ..
+                                format_headers(req_headers) .. "\n" ..
+                                "Request Body:\n" ..
+                                (req_body ~= "" and req_body or "") .. "\n\n" ..
+                                "Response Headers:\n" ..
+                                format_headers(resp_headers) .. "\n" ..
+                                "Response Body:\n" ..
+                                (resp_body ~= "" and resp_body or "") .. "\n"
+
+            local log_base64 = ngx.encode_base64(log_content)
+            local log_line = string.format("STATUS: %s\t%s", status, log_base64)
+
+            local file, err = io.open("/home/judge/webserver/log/access.log", "a")
+            if not file then
+                ngx.log(ngx.ERR, "Failed to open log file: ", err)
+            else
+                file:write(log_line, "\n")
+                file:close()
+            end
+        end
+    }
+
+    # Redirect HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name nasa.88.cs.nycu;
+
+    access_log /home/judge/webserver/log/access.log combined if=$loggable;
+
+    ssl_certificate /usr/local/openresty/nginx/conf/ssl/88.cs.nycu.crt;
+    ssl_certificate_key /usr/local/openresty/nginx/conf/ssl/88.cs.nycu.key;
+
+    # Enable HSTS
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # Hide Server Information
+    server_tokens off;
+
+    # Access Control (Basic Auth)
+    auth_basic "Restricted Content";
+    auth_basic_user_file /usr/local/openresty/nginx/conf/.htpasswd;
+
+    location / {
+        root /var/www/nasa.88.cs.nycu;
+        index index.txt;
+        default_type text/plain;
+
+        access_by_lua_block {
+            ngx.req.read_body()
+            local req_body = ngx.req.get_body_data()
+            if not req_body then
+                local req_body_file = ngx.req.get_body_file()
+                if req_body_file then
+                    local file = io.open(req_body_file, "rb")
+                    if file then
+                        req_body = file:read("*all")
+                        file:close()
+                    end
+                end
+            end
+            ngx.ctx.request_body = req_body or ""
+        }
+
+        body_filter_by_lua_block {
+            local resp_body = ngx.ctx.buffered or ""
+            resp_body = resp_body .. (ngx.arg[1] or "")
+            if ngx.arg[2] then
+                ngx.ctx.response_body = resp_body
+            else
+                ngx.ctx.buffered = resp_body
+            end
+        }
+
+        log_by_lua_block {
+            if ngx.var.loggable == "1" then
+                local cjson = require "cjson.safe"
+                local status = ngx.status
+
+                local req_headers = ngx.req.get_headers()
+                local req_body = ngx.ctx.request_body or ""
+                local resp_headers = ngx.resp.get_headers()
+                local resp_body = ngx.ctx.response_body or ""
+
+                local function format_headers(headers)
+                    local formatted = ""
+                    for k, v in pairs(headers) do
+                        formatted = formatted .. string.format("%s: %s\n", k, v)
+                    end
+                    return formatted
+                end
+
+                local log_content = "Request Headers:\n" ..
+                                    format_headers(req_headers) .. "\n" ..
+                                    "Request Body:\n" ..
+                                    (req_body ~= "" and req_body or "") .. "\n\n" ..
+                                    "Response Headers:\n" ..
+                                    format_headers(resp_headers) .. "\n" ..
+                                    "Response Body:\n" ..
+                                    (resp_body ~= "" and resp_body or "") .. "\n"
+
+                local log_base64 = ngx.encode_base64(log_content)
+                local log_line = string.format("STATUS: %s\t%s", status, log_base64)
+
+                local file, err = io.open("/home/judge/webserver/log/access.log", "a")
+                if not file then
+                    ngx.log(ngx.ERR, "Failed to open log file: ", err)
+                else
+                    file:write(log_line, "\n")
+                    file:close()
+                end
+            end
+        }
+    }
+}

@@ -1,0 +1,43 @@
+upstream backend_servers {
+    server 192.168.88.1:8080 max_fails=3 fail_timeout=30s;
+    server 192.168.88.2:8080 max_fails=3 fail_timeout=30s;
+}
+
+server {
+    listen 80;
+    server_name file.88.cs.nycu;
+
+    access_log /home/judge/webserver/log/access.log combined if=$loggable;
+
+    # Redirect HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name file.88.cs.nycu;
+
+    access_log /home/judge/webserver/log/access.log combined if=$loggable;
+
+    ssl_certificate /usr/local/openresty/nginx/conf/ssl/88.cs.nycu.crt;
+    ssl_certificate_key /usr/local/openresty/nginx/conf/ssl/88.cs.nycu.key;
+
+    # Enable HSTS
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # Hide Server Information
+    server_tokens off;
+
+    location / {
+        proxy_pass http://backend_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Optional: Increase timeouts if needed
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+}
