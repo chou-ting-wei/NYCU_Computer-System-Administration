@@ -33,7 +33,6 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/openr
 sudo apt-get update
 sudo apt-get -y install openresty
 
-# sudo apt install nginx openssl postgresql postgresql-contrib php-fpm php-xml unzip curl git -y
 sudo apt install openssl -y
 sudo apt install net-tools -y
 sudo apt install postgresql postgresql-contrib -y
