@@ -4,7 +4,7 @@
 **本Repo提供為參考用途，不保證資料正確性，切勿直接抄襲。**
 
 ## Homework
-- hw01: System Setup: Install Ubuntu / FreeBSD
-- hw02: Shell Script
-- hw03: File Server & Backup
-- hw04: Web Services & NFS FireWall
+- HW01: System Setup: Install Ubuntu / FreeBSD
+- HW02: Shell Script
+- HW03: File Server & Backup
+- HW04: Web Services & NFS FireWall
